@@ -6,8 +6,8 @@ package model;
  */
 public enum Rol {
     ADMINISTRADOR("Administrador"),
-    OPERADOR("Operador");
-    //VENDEDOR("Vendedor");
+    OPERADOR("Operador"),
+    VENDEDOR("Vendedor");
 
     private final String descripcion;
 
