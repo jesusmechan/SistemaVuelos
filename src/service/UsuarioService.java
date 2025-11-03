@@ -2,6 +2,7 @@ package service;
 
 import model.Usuario;
 import repository.IUsuarioRepository;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -50,6 +51,11 @@ public class UsuarioService implements IUsuarioService {
     @Override
     public Optional<Usuario> buscarUsuario(String nombreUsuario) {
         return usuarioRepository.buscarPorNombreUsuario(nombreUsuario);
+    }
+
+    @Override
+    public List<Usuario> listarTodosLosUsuarios() {
+        return usuarioRepository.listarTodos();
     }
 
     @Override

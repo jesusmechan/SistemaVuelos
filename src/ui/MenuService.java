@@ -392,9 +392,30 @@ public class MenuService {
 
     private void listarUsuarios() {
         System.out.println("\n=== LISTA DE USUARIOS ===");
-        // Por simplicidad, mostramos solo los usuarios registrados
-        // En una implementación real, podrías agregar listarTodos() al servicio
-        System.out.println("Función de listado completo requiere implementación adicional.");
+        List<Usuario> usuarios = usuarioService.listarTodosLosUsuarios();
+        
+        if (usuarios.isEmpty()) {
+            System.out.println("No hay usuarios registrados.");
+        } else {
+            System.out.printf("%-20s %-20s %-20s %-30s%n", 
+                "Nombre de Usuario", "Rol", "Empleado", "Email");
+            System.out.println("--------------------------------------------------------------------------------");
+            
+            for (Usuario usuario : usuarios) {
+                String nombreUsuario = usuario.getNombreUsuario();
+                String rol = usuario.getRol() != null ? usuario.getRol().toString() : "N/A";
+                String empleadoNombre = usuario.getEmpleado() != null 
+                    ? usuario.getEmpleado().getNombreCompleto() 
+                    : "N/A";
+                String email = usuario.getEmpleado() != null 
+                    ? usuario.getEmpleado().getEmail() 
+                    : "N/A";
+                
+                System.out.printf("%-20s %-20s %-20s %-30s%n", 
+                    nombreUsuario, rol, empleadoNombre, email);
+            }
+            System.out.println("\nTotal de usuarios: " + usuarios.size());
+        }
     }
 
     private void eliminarUsuario() {
