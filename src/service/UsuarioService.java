@@ -1,7 +1,11 @@
 package service;
 
+import exception.OperacionNoPermitidaException;
+import exception.RecursoNoEncontradoException;
+import exception.ValidacionException;
 import model.Usuario;
 import repository.IUsuarioRepository;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -19,33 +23,41 @@ public class UsuarioService implements IUsuarioService {
     @Override
     public boolean registrarUsuario(Usuario usuario) {
         if (usuario == null) {
-            return false;
+            throw new ValidacionException("El usuario no puede ser nulo.");
         }
-        
-        if (usuario.getNombreUsuario() == null || usuario.getNombreUsuario().isEmpty()) {
-            return false;
+
+        if (usuario.getNombreUsuario() == null || usuario.getNombreUsuario().isBlank()) {
+            throw new ValidacionException("El nombre de usuario es obligatorio.");
         }
-        
+
+        if (usuario.getContrasena() == null || usuario.getContrasena().isBlank()) {
+            throw new ValidacionException("La contraseña es obligatoria.");
+        }
+
         if (usuarioRepository.existe(usuario.getNombreUsuario())) {
-            return false; // El usuario ya existe
+            throw new OperacionNoPermitidaException("Ya existe un usuario con el nombre " + usuario.getNombreUsuario() + ".");
         }
-        
+
         usuarioRepository.guardar(usuario);
         return true;
     }
 
     @Override
     public Optional<Usuario> autenticar(String nombreUsuario, String contrasena) {
-        Optional<Usuario> usuarioOpt = usuarioRepository.buscarPorNombreUsuario(nombreUsuario);
-        
-        if (usuarioOpt.isPresent()) {
-            Usuario usuario = usuarioOpt.get();
-            if (usuario.getContrasena().equals(contrasena)) {
-                return Optional.of(usuario);
-            }
+        if (nombreUsuario == null || nombreUsuario.isBlank()) {
+            throw new ValidacionException("El nombre de usuario es obligatorio para autenticarse.");
         }
-        
-        return Optional.empty();
+        if (contrasena == null || contrasena.isBlank()) {
+            throw new ValidacionException("La contraseña es obligatoria para autenticarse.");
+        }
+
+        Optional<Usuario> usuarioOpt = usuarioRepository.buscarPorNombreUsuario(nombreUsuario);
+
+        if (usuarioOpt.isPresent() && usuarioOpt.get().getContrasena().equals(contrasena)) {
+            return usuarioOpt;
+        }
+
+        throw new RecursoNoEncontradoException("Credenciales inválidas.");
     }
 
     @Override
@@ -60,6 +72,12 @@ public class UsuarioService implements IUsuarioService {
 
     @Override
     public boolean eliminarUsuario(String nombreUsuario) {
+        if (nombreUsuario == null || nombreUsuario.isBlank()) {
+            throw new ValidacionException("El nombre de usuario es obligatorio para eliminar un usuario.");
+        }
+        if (!usuarioRepository.existe(nombreUsuario)) {
+            throw new RecursoNoEncontradoException("No se encontró un usuario con nombre " + nombreUsuario + ".");
+        }
         return usuarioRepository.eliminar(nombreUsuario);
     }
 }

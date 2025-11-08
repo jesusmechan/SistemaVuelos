@@ -1,5 +1,6 @@
 package ui;
 
+import exception.DominioException;
 import model.*;
 import service.*;
 import repository.*;
@@ -15,6 +16,8 @@ import java.util.Scanner;
  * Aplica SRP - única responsabilidad: interfaz de usuario
  */
 public class MenuService {
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
     private final Scanner scanner;
     private final IEmpleadoService empleadoService;
     private final IUsuarioService usuarioService;
@@ -75,14 +78,18 @@ public class MenuService {
         String nombreUsuario = scanner.nextLine();
         System.out.print("Contraseña: ");
         String contrasena = scanner.nextLine();
+
+        usuarioActual = null;
         
-        usuarioActual = usuarioService.autenticar(nombreUsuario, contrasena).orElse(null);
-        
-        if (usuarioActual != null) {
-            System.out.println("\n¡Bienvenido, " + usuarioActual.getNombre() + "!");
-            mostrarMenuUsuario();
-        } else {
-            System.out.println("Usuario o contraseña incorrectos.");
+        try {
+            usuarioActual = usuarioService.autenticar(nombreUsuario, contrasena).orElse(null);
+            
+            if (usuarioActual != null) {
+                System.out.println("\n¡Bienvenido, " + usuarioActual.getNombre() + "!");
+                mostrarMenuUsuario();
+            }
+        } catch (DominioException e) {
+            System.out.println("Error: " + e.getMessage());
         }
     }
 
@@ -265,19 +272,22 @@ public class MenuService {
         
         Empleado empleado = new Empleado(dni, nombre, apellido, email, telefono,
                 numeroEmpleado, cargo, fechaContratacion, salario);
-        
-        if (empleadoService.registrarEmpleado(empleado)) {
+
+        ejecutarAccion(() -> {
+            empleadoService.registrarEmpleado(empleado);
             System.out.println("Empleado registrado exitosamente.");
-        } else {
-            System.out.println("Error al registrar empleado. El DNI puede ya estar registrado.");
-        }
+        });
     }
 
     private void buscarEmpleadoPorDni() {
         System.out.print("\nIngrese el DNI: ");
         String dni = scanner.nextLine();
         empleadoService.buscarEmpleadoPorDni(dni).ifPresentOrElse(
-            empleado -> System.out.println("Empleado encontrado: " + empleado),
+            empleado -> {
+                System.out.println("\n=== EMPLEADO ENCONTRADO ===");
+                imprimirTablaEmpleados(List.of(empleado));
+                System.out.println("Total encontrados: 1");
+            },
             () -> System.out.println("Empleado no encontrado.")
         );
     }
@@ -288,29 +298,225 @@ public class MenuService {
             System.out.println("No hay empleados registrados.");
         } else {
             System.out.println("\n=== LISTA DE EMPLEADOS ===");
-            empleados.forEach(System.out::println);
+            imprimirTablaEmpleados(empleados);
+            System.out.println("Total de empleados: " + empleados.size());
         }
     }
 
     private void buscarEmpleadosPorCargo() {
         System.out.print("\nIngrese el cargo: ");
         String cargo = scanner.nextLine();
-        List<Empleado> empleados = empleadoService.buscarEmpleadosPorCargo(cargo);
-        if (empleados.isEmpty()) {
-            System.out.println("No se encontraron empleados con ese cargo.");
-        } else {
-            empleados.forEach(System.out::println);
+        ejecutarAccion(() -> {
+            List<Empleado> empleados = empleadoService.buscarEmpleadosPorCargo(cargo);
+            if (empleados.isEmpty()) {
+                System.out.println("No se encontraron empleados con ese cargo.");
+            } else {
+                System.out.println("\n=== EMPLEADOS CON CARGO: " + cargo.toUpperCase() + " ===");
+                imprimirTablaEmpleados(empleados);
+                System.out.println("Total encontrados: " + empleados.size());
+            }
+        });
+    }
+
+    private void imprimirTablaEmpleados(List<Empleado> empleados) {
+        String headerFormat = "%-12s %-25s %-30s %-15s %-12s %-18s %-12s %-10s%n";
+        String rowFormat = "%-12s %-25s %-30s %-15s %-12s %-18s %-12s %-10.2f%n";
+        String separator = "---------------------------------------------------------------------------------------------------------------";
+
+        System.out.printf(headerFormat,
+                "DNI",
+                "Nombre completo",
+                "Email",
+                "Teléfono",
+                "N° Empleado",
+                "Cargo",
+                "F. Contrato",
+                "Salario");
+        System.out.println(separator);
+
+        empleados.forEach(empleado -> System.out.printf(rowFormat,
+                empleado.getDni(),
+                empleado.getNombreCompleto(),
+                empleado.getEmail(),
+                empleado.getTelefono(),
+                empleado.getNumeroEmpleado(),
+                empleado.getCargo(),
+                empleado.getFechaContratacion(),
+                empleado.getSalario()));
+
+        System.out.println(separator);
+    }
+
+    private void imprimirTablaUsuarios(List<Usuario> usuarios) {
+        String headerFormat = "%-20s %-15s %-25s %-30s%n";
+        String rowFormat = "%-20s %-15s %-25s %-30s%n";
+        String separator = "-------------------------------------------------------------------------------------------";
+
+        System.out.printf(headerFormat, "Usuario", "Rol", "Empleado", "Email");
+        System.out.println(separator);
+
+        usuarios.forEach(usuario -> {
+            String rol = usuario.getRol() != null ? usuario.getRol().toString() : "N/A";
+            String empleadoNombre = usuario.getEmpleado() != null ? usuario.getEmpleado().getNombreCompleto() : "N/A";
+            String email = usuario.getEmpleado() != null ? usuario.getEmpleado().getEmail() : "N/A";
+
+            System.out.printf(rowFormat,
+                    usuario.getNombreUsuario(),
+                    rol,
+                    empleadoNombre,
+                    email);
+        });
+
+        System.out.println(separator);
+    }
+
+    private void imprimirTablaPasajeros(List<Pasajero> pasajeros) {
+        String headerFormat = "%-12s %-25s %-30s %-15s %-12s %-15s %-18s%n";
+        String rowFormat = "%-12s %-25s %-30s %-15s %-12s %-15s %-18s%n";
+        String separator = "---------------------------------------------------------------------------------------------------------------";
+
+        System.out.printf(headerFormat,
+                "DNI",
+                "Nombre completo",
+                "Email",
+                "Teléfono",
+                "F. Nac.",
+                "Nacionalidad",
+                "Pasaporte");
+        System.out.println(separator);
+
+        pasajeros.forEach(pasajero -> System.out.printf(rowFormat,
+                pasajero.getDni(),
+                pasajero.getNombreCompleto(),
+                pasajero.getEmail(),
+                pasajero.getTelefono(),
+                pasajero.getFechaNacimiento() != null ? pasajero.getFechaNacimiento() : "N/A",
+                pasajero.getNacionalidad() != null ? pasajero.getNacionalidad() : "N/A",
+                pasajero.getNumeroPasaporte() != null ? pasajero.getNumeroPasaporte() : "N/A"));
+
+        System.out.println(separator);
+    }
+
+    private void imprimirTablaAviones(List<Avion> aviones) {
+        String headerFormat = "%-15s %-20s %-20s %-15s %-15s %-15s%n";
+        String rowFormat = "%-15s %-20s %-20s %-15d %-15d %-15s%n";
+        String separator = "-----------------------------------------------------------------------------------------------";
+
+        System.out.printf(headerFormat,
+                "N° Serie",
+                "Modelo",
+                "Fabricante",
+                "Cap. Pasajeros",
+                "Cap. Carga",
+                "Estado");
+        System.out.println(separator);
+
+        aviones.forEach(avion -> System.out.printf(rowFormat,
+                avion.getNumeroSerie(),
+                avion.getModelo(),
+                avion.getFabricante(),
+                avion.getCapacidadPasajeros(),
+                avion.getCapacidadCarga(),
+                avion.getEstado() != null ? avion.getEstado() : "N/A"));
+
+        System.out.println(separator);
+    }
+
+    private void imprimirTablaVuelos(List<Vuelo> vuelos) {
+        String headerFormat = "%-10s %-15s %-15s %-18s %-18s %-25s %-10s %-12s %-10s%n";
+        String rowFormat = "%-10s %-15s %-15s %-18s %-18s %-25s %-10.2f %-12d %-10s%n";
+        String separator = "----------------------------------------------------------------------------------------------------------------------------";
+
+        System.out.printf(headerFormat,
+                "N° Vuelo",
+                "Origen",
+                "Destino",
+                "Salida",
+                "Llegada",
+                "Avión",
+                "Precio",
+                "Asientos",
+                "Estado");
+        System.out.println(separator);
+
+        vuelos.forEach(vuelo -> {
+            String salida = formatearFechaHora(vuelo.getFechaHoraSalida());
+            String llegada = formatearFechaHora(vuelo.getFechaHoraLlegada());
+            String avionInfo = vuelo.getAvion() != null
+                    ? vuelo.getAvion().getModelo() + " (" + vuelo.getAvion().getNumeroSerie() + ")"
+                    : "N/A";
+            System.out.printf(rowFormat,
+                    vuelo.getNumeroVuelo(),
+                    vuelo.getOrigen(),
+                    vuelo.getDestino(),
+                    salida,
+                    llegada,
+                    avionInfo,
+                    vuelo.getPrecio(),
+                    vuelo.getAsientosDisponibles(),
+                    vuelo.getEstado() != null ? vuelo.getEstado() : "N/A");
+        });
+
+        System.out.println(separator);
+    }
+
+    private void imprimirTablaReservas(List<Reserva> reservas) {
+        String headerFormat = "%-12s %-25s %-12s %-20s %-12s %-10s %-10s%n";
+        String rowFormat = "%-12s %-25s %-12s %-20s %-12s %-10d %-10.2f%n";
+        String separator = "------------------------------------------------------------------------------------------------------";
+
+        System.out.printf(headerFormat,
+                "N° Reserva",
+                "Pasajero",
+                "DNI",
+                "Vuelo",
+                "Fecha",
+                "Asiento",
+                "Total");
+        System.out.println(separator);
+
+        reservas.forEach(reserva -> {
+            Pasajero pasajero = reserva.getPasajero();
+            Vuelo vuelo = reserva.getVuelo();
+            String pasajeroNombre = pasajero != null ? pasajero.getNombreCompleto() : "N/A";
+            String pasajeroDni = pasajero != null ? pasajero.getDni() : "N/A";
+            String vueloInfo = vuelo != null ? vuelo.getNumeroVuelo() : "N/A";
+            String fecha = reserva.getFechaReserva() != null ? formatearFechaHora(reserva.getFechaReserva()) : "N/A";
+
+            System.out.printf(rowFormat,
+                    reserva.getNumeroReserva(),
+                    pasajeroNombre,
+                    pasajeroDni,
+                    vueloInfo,
+                    fecha,
+                    reserva.getNumeroAsiento(),
+                    reserva.calcularTotal());
+        });
+
+        System.out.println(separator);
+    }
+
+    private String formatearFechaHora(LocalDateTime fechaHora) {
+        return fechaHora != null ? fechaHora.format(DATE_TIME_FORMATTER) : "N/A";
+    }
+
+    private void ejecutarAccion(Runnable accion) {
+        try {
+            accion.run();
+        } catch (DominioException e) {
+            System.out.println("Error: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Error inesperado: " + e.getMessage());
         }
     }
 
     private void eliminarEmpleado() {
         System.out.print("\nIngrese el DNI del empleado a eliminar: ");
         String dni = scanner.nextLine();
-        if (empleadoService.eliminarEmpleado(dni)) {
+        ejecutarAccion(() -> {
+            empleadoService.eliminarEmpleado(dni);
             System.out.println("Empleado eliminado exitosamente.");
-        } else {
-            System.out.println("Error al eliminar empleado.");
-        }
+        });
     }
 
     private void menuUsuarios() {
@@ -369,14 +575,11 @@ public class MenuService {
         String dniEmpleado = scanner.nextLine();
         
         empleadoService.buscarEmpleadoPorDni(dniEmpleado).ifPresentOrElse(
-            empleado -> {
+            empleado -> ejecutarAccion(() -> {
                 Usuario usuario = new Usuario(nombreUsuario, contrasena, rolFinal, empleado);
-                if (usuarioService.registrarUsuario(usuario)) {
-                    System.out.println("Usuario registrado exitosamente.");
-                } else {
-                    System.out.println("Error al registrar usuario. El nombre de usuario puede ya estar en uso.");
-                }
-            },
+                usuarioService.registrarUsuario(usuario);
+                System.out.println("Usuario registrado exitosamente.");
+            }),
             () -> System.out.println("Empleado no encontrado. Debe registrar el empleado primero.")
         );
     }
@@ -385,7 +588,11 @@ public class MenuService {
         System.out.print("\nIngrese el nombre de usuario: ");
         String nombreUsuario = scanner.nextLine();
         usuarioService.buscarUsuario(nombreUsuario).ifPresentOrElse(
-            usuario -> System.out.println("Usuario encontrado: " + usuario),
+            usuario -> {
+                System.out.println("\n=== USUARIO ENCONTRADO ===");
+                imprimirTablaUsuarios(List.of(usuario));
+                System.out.println("Total encontrados: 1");
+            },
             () -> System.out.println("Usuario no encontrado.")
         );
     }
@@ -397,23 +604,7 @@ public class MenuService {
         if (usuarios.isEmpty()) {
             System.out.println("No hay usuarios registrados.");
         } else {
-            System.out.printf("%-20s %-20s %-20s %-30s%n", 
-                "Nombre de Usuario", "Rol", "Empleado", "Email");
-            System.out.println("--------------------------------------------------------------------------------");
-            
-            for (Usuario usuario : usuarios) {
-                String nombreUsuario = usuario.getNombreUsuario();
-                String rol = usuario.getRol() != null ? usuario.getRol().toString() : "N/A";
-                String empleadoNombre = usuario.getEmpleado() != null 
-                    ? usuario.getEmpleado().getNombreCompleto() 
-                    : "N/A";
-                String email = usuario.getEmpleado() != null 
-                    ? usuario.getEmpleado().getEmail() 
-                    : "N/A";
-                
-                System.out.printf("%-20s %-20s %-20s %-30s%n", 
-                    nombreUsuario, rol, empleadoNombre, email);
-            }
+            imprimirTablaUsuarios(usuarios);
             System.out.println("\nTotal de usuarios: " + usuarios.size());
         }
     }
@@ -421,11 +612,10 @@ public class MenuService {
     private void eliminarUsuario() {
         System.out.print("\nIngrese el nombre de usuario a eliminar: ");
         String nombreUsuario = scanner.nextLine();
-        if (usuarioService.eliminarUsuario(nombreUsuario)) {
+        ejecutarAccion(() -> {
+            usuarioService.eliminarUsuario(nombreUsuario);
             System.out.println("Usuario eliminado exitosamente.");
-        } else {
-            System.out.println("Error al eliminar usuario.");
-        }
+        });
     }
 
     private void menuPasajeros() {
@@ -503,18 +693,21 @@ public class MenuService {
         Pasajero pasajero = new Pasajero(dni, nombre, apellido, email, telefono,
                 fechaNacimiento, nacionalidad, numeroPasaporte);
         
-        if (pasajeroService.registrarPasajero(pasajero)) {
+        ejecutarAccion(() -> {
+            pasajeroService.registrarPasajero(pasajero);
             System.out.println("Pasajero registrado exitosamente.");
-        } else {
-            System.out.println("Error al registrar pasajero. El DNI puede ya estar registrado.");
-        }
+        });
     }
 
     private void buscarPasajeroPorDni() {
         System.out.print("\nIngrese el DNI: ");
         String dni = scanner.nextLine();
         pasajeroService.buscarPasajeroPorDni(dni).ifPresentOrElse(
-            pasajero -> System.out.println("Pasajero encontrado: " + pasajero),
+            pasajero -> {
+                System.out.println("\n=== PASAJERO ENCONTRADO ===");
+                imprimirTablaPasajeros(List.of(pasajero));
+                System.out.println("Total encontrados: 1");
+            },
             () -> System.out.println("Pasajero no encontrado.")
         );
     }
@@ -525,18 +718,18 @@ public class MenuService {
             System.out.println("No hay pasajeros registrados.");
         } else {
             System.out.println("\n=== LISTA DE PASAJEROS ===");
-            pasajeros.forEach(System.out::println);
+            imprimirTablaPasajeros(pasajeros);
+            System.out.println("Total de pasajeros: " + pasajeros.size());
         }
     }
 
     private void eliminarPasajero() {
         System.out.print("\nIngrese el DNI del pasajero a eliminar: ");
         String dni = scanner.nextLine();
-        if (pasajeroService.eliminarPasajero(dni)) {
+        ejecutarAccion(() -> {
+            pasajeroService.eliminarPasajero(dni);
             System.out.println("Pasajero eliminado exitosamente.");
-        } else {
-            System.out.println("Error al eliminar pasajero.");
-        }
+        });
     }
 
     private void menuAviones() {
@@ -591,20 +784,23 @@ public class MenuService {
         
         Avion avion = new Avion(numeroSerie, modelo, fabricante, capacidadPasajeros, capacidadCarga);
         
-        if (avionService.registrarAvion(avion)) {
+        ejecutarAccion(() -> {
+            avionService.registrarAvion(avion);
             System.out.println("Avión registrado exitosamente.");
-        } else {
-            System.out.println("Error al registrar avión. El número de serie puede ya estar registrado.");
-        }
+        });
     }
 
     private void buscarAvionPorNumeroSerie() {
         System.out.print("\nIngrese el número de serie: ");
         String numeroSerie = scanner.nextLine();
-        avionService.buscarAvionPorNumeroSerie(numeroSerie).ifPresentOrElse(
-            avion -> System.out.println("Avión encontrado: " + avion),
-            () -> System.out.println("Avión no encontrado.")
-        );
+        ejecutarAccion(() -> avionService.buscarAvionPorNumeroSerie(numeroSerie).ifPresentOrElse(
+                avion -> {
+                    System.out.println("\n=== AVIÓN ENCONTRADO ===");
+                    imprimirTablaAviones(List.of(avion));
+                    System.out.println("Total encontrados: 1");
+                },
+                () -> System.out.println("Avión no encontrado.")
+        ));
     }
 
     private void listarAviones() {
@@ -613,28 +809,31 @@ public class MenuService {
             System.out.println("No hay aviones registrados.");
         } else {
             System.out.println("\n=== LISTA DE AVIONES ===");
-            aviones.forEach(System.out::println);
+            imprimirTablaAviones(aviones);
+            System.out.println("Total de aviones: " + aviones.size());
         }
     }
 
     private void listarAvionesDisponibles() {
-        List<Avion> aviones = avionService.buscarAvionesDisponibles();
-        if (aviones.isEmpty()) {
-            System.out.println("No hay aviones disponibles.");
-        } else {
-            System.out.println("\n=== AVIONES DISPONIBLES ===");
-            aviones.forEach(System.out::println);
-        }
+        ejecutarAccion(() -> {
+            List<Avion> aviones = avionService.buscarAvionesDisponibles();
+            if (aviones.isEmpty()) {
+                System.out.println("No hay aviones disponibles.");
+            } else {
+                System.out.println("\n=== AVIONES DISPONIBLES ===");
+                imprimirTablaAviones(aviones);
+                System.out.println("Total disponibles: " + aviones.size());
+            }
+        });
     }
 
     private void eliminarAvion() {
         System.out.print("\nIngrese el número de serie del avión a eliminar: ");
         String numeroSerie = scanner.nextLine();
-        if (avionService.eliminarAvion(numeroSerie)) {
+        ejecutarAccion(() -> {
+            avionService.eliminarAvion(numeroSerie);
             System.out.println("Avión eliminado exitosamente.");
-        } else {
-            System.out.println("Error al eliminar avión.");
-        }
+        });
     }
 
     private void menuVuelos() {
@@ -719,27 +918,28 @@ public class MenuService {
         System.out.print("Precio: ");
         double precio = leerDouble();
         
-        avionService.buscarAvionPorNumeroSerie(numeroSerie).ifPresentOrElse(
-            avion -> {
-                Vuelo vuelo = new Vuelo(numeroVuelo, origen, destino, fechaHoraSalida,
-                        fechaHoraLlegada, avion, precio);
-                if (vueloService.registrarVuelo(vuelo)) {
+        ejecutarAccion(() -> avionService.buscarAvionPorNumeroSerie(numeroSerie).ifPresentOrElse(
+                avion -> {
+                    Vuelo vuelo = new Vuelo(numeroVuelo, origen, destino, fechaHoraSalida,
+                            fechaHoraLlegada, avion, precio);
+                    vueloService.registrarVuelo(vuelo);
                     System.out.println("Vuelo registrado exitosamente.");
-                } else {
-                    System.out.println("Error al registrar vuelo. El número de vuelo puede ya estar registrado.");
-                }
-            },
-            () -> System.out.println("Avión no encontrado. Debe registrar el avión primero.")
-        );
+                },
+                () -> System.out.println("Avión no encontrado. Debe registrar el avión primero.")
+        ));
     }
 
     private void buscarVueloPorNumero() {
         System.out.print("\nIngrese el número de vuelo: ");
         String numeroVuelo = scanner.nextLine();
-        vueloService.buscarVueloPorNumero(numeroVuelo).ifPresentOrElse(
-            vuelo -> System.out.println("Vuelo encontrado: " + vuelo),
-            () -> System.out.println("Vuelo no encontrado.")
-        );
+        ejecutarAccion(() -> vueloService.buscarVueloPorNumero(numeroVuelo).ifPresentOrElse(
+                vuelo -> {
+                    System.out.println("\n=== VUELO ENCONTRADO ===");
+                    imprimirTablaVuelos(List.of(vuelo));
+                    System.out.println("Total encontrados: 1");
+                },
+                () -> System.out.println("Vuelo no encontrado.")
+        ));
     }
 
     private void listarVuelos() {
@@ -748,30 +948,39 @@ public class MenuService {
             System.out.println("No hay vuelos registrados.");
         } else {
             System.out.println("\n=== LISTA DE VUELOS ===");
-            vuelos.forEach(System.out::println);
+            imprimirTablaVuelos(vuelos);
+            System.out.println("Total de vuelos: " + vuelos.size());
         }
     }
 
     private void buscarVuelosPorOrigen() {
         System.out.print("\nIngrese el origen: ");
         String origen = scanner.nextLine();
-        List<Vuelo> vuelos = vueloService.buscarVuelosPorOrigen(origen);
-        if (vuelos.isEmpty()) {
-            System.out.println("No se encontraron vuelos con ese origen.");
-        } else {
-            vuelos.forEach(System.out::println);
-        }
+        ejecutarAccion(() -> {
+            List<Vuelo> vuelos = vueloService.buscarVuelosPorOrigen(origen);
+            if (vuelos.isEmpty()) {
+                System.out.println("No se encontraron vuelos con ese origen.");
+            } else {
+                System.out.println("\n=== VUELOS DESDE " + origen.toUpperCase() + " ===");
+                imprimirTablaVuelos(vuelos);
+                System.out.println("Total encontrados: " + vuelos.size());
+            }
+        });
     }
 
     private void buscarVuelosPorDestino() {
         System.out.print("\nIngrese el destino: ");
         String destino = scanner.nextLine();
-        List<Vuelo> vuelos = vueloService.buscarVuelosPorDestino(destino);
-        if (vuelos.isEmpty()) {
-            System.out.println("No se encontraron vuelos con ese destino.");
-        } else {
-            vuelos.forEach(System.out::println);
-        }
+        ejecutarAccion(() -> {
+            List<Vuelo> vuelos = vueloService.buscarVuelosPorDestino(destino);
+            if (vuelos.isEmpty()) {
+                System.out.println("No se encontraron vuelos con ese destino.");
+            } else {
+                System.out.println("\n=== VUELOS HACIA " + destino.toUpperCase() + " ===");
+                imprimirTablaVuelos(vuelos);
+                System.out.println("Total encontrados: " + vuelos.size());
+            }
+        });
     }
 
     private void buscarVuelosPorRuta() {
@@ -779,22 +988,25 @@ public class MenuService {
         String origen = scanner.nextLine();
         System.out.print("Ingrese el destino: ");
         String destino = scanner.nextLine();
-        List<Vuelo> vuelos = vueloService.buscarVuelosPorRuta(origen, destino);
-        if (vuelos.isEmpty()) {
-            System.out.println("No se encontraron vuelos en esa ruta.");
-        } else {
-            vuelos.forEach(System.out::println);
-        }
+        ejecutarAccion(() -> {
+            List<Vuelo> vuelos = vueloService.buscarVuelosPorRuta(origen, destino);
+            if (vuelos.isEmpty()) {
+                System.out.println("No se encontraron vuelos en esa ruta.");
+            } else {
+                System.out.println("\n=== VUELOS " + origen.toUpperCase() + " ➜ " + destino.toUpperCase() + " ===");
+                imprimirTablaVuelos(vuelos);
+                System.out.println("Total encontrados: " + vuelos.size());
+            }
+        });
     }
 
     private void eliminarVuelo() {
         System.out.print("\nIngrese el número de vuelo a eliminar: ");
         String numeroVuelo = scanner.nextLine();
-        if (vueloService.eliminarVuelo(numeroVuelo)) {
+        ejecutarAccion(() -> {
+            vueloService.eliminarVuelo(numeroVuelo);
             System.out.println("Vuelo eliminado exitosamente.");
-        } else {
-            System.out.println("Error al eliminar vuelo.");
-        }
+        });
     }
 
     private void menuReservas() {
@@ -868,32 +1080,31 @@ public class MenuService {
         String numeroVuelo = scanner.nextLine();
         System.out.print("Número de Asiento: ");
         int numeroAsiento = leerEntero();
-        
-        pasajeroService.buscarPasajeroPorDni(dniPasajero).ifPresentOrElse(
-            pasajero -> {
-                vueloService.buscarVueloPorNumero(numeroVuelo).ifPresentOrElse(
-                    vuelo -> {
-                        Reserva reserva = new Reserva(numeroReserva, pasajero, vuelo, numeroAsiento);
-                        if (reservaService.crearReserva(reserva)) {
+
+        ejecutarAccion(() -> pasajeroService.buscarPasajeroPorDni(dniPasajero).ifPresentOrElse(
+                pasajero -> vueloService.buscarVueloPorNumero(numeroVuelo).ifPresentOrElse(
+                        vuelo -> {
+                            Reserva reserva = new Reserva(numeroReserva, pasajero, vuelo, numeroAsiento);
+                            reservaService.crearReserva(reserva);
                             System.out.println("Reserva creada exitosamente.");
-                        } else {
-                            System.out.println("Error al crear reserva. Verifique que el vuelo tenga asientos disponibles.");
-                        }
-                    },
-                    () -> System.out.println("Vuelo no encontrado.")
-                );
-            },
-            () -> System.out.println("Pasajero no encontrado. Debe registrar el pasajero primero.")
-        );
+                        },
+                        () -> System.out.println("Vuelo no encontrado.")
+                ),
+                () -> System.out.println("Pasajero no encontrado. Debe registrar el pasajero primero.")
+        ));
     }
 
     private void buscarReservaPorNumero() {
         System.out.print("\nIngrese el número de reserva: ");
         String numeroReserva = scanner.nextLine();
-        reservaService.buscarReservaPorNumero(numeroReserva).ifPresentOrElse(
-            reserva -> System.out.println("Reserva encontrada: " + reserva),
-            () -> System.out.println("Reserva no encontrada.")
-        );
+        ejecutarAccion(() -> reservaService.buscarReservaPorNumero(numeroReserva).ifPresentOrElse(
+                reserva -> {
+                    System.out.println("\n=== RESERVA ENCONTRADA ===");
+                    imprimirTablaReservas(List.of(reserva));
+                    System.out.println("Total encontrados: 1");
+                },
+                () -> System.out.println("Reserva no encontrada.")
+        ));
     }
 
     private void listarReservas() {
@@ -902,40 +1113,48 @@ public class MenuService {
             System.out.println("No hay reservas registradas.");
         } else {
             System.out.println("\n=== LISTA DE RESERVAS ===");
-            reservas.forEach(System.out::println);
+            imprimirTablaReservas(reservas);
+            System.out.println("Total de reservas: " + reservas.size());
         }
     }
 
     private void buscarReservasPorPasajero() {
         System.out.print("\nIngrese el DNI del pasajero: ");
         String dniPasajero = scanner.nextLine();
-        List<Reserva> reservas = reservaService.buscarReservasPorPasajero(dniPasajero);
-        if (reservas.isEmpty()) {
-            System.out.println("No se encontraron reservas para ese pasajero.");
-        } else {
-            reservas.forEach(System.out::println);
-        }
+        ejecutarAccion(() -> {
+            List<Reserva> reservas = reservaService.buscarReservasPorPasajero(dniPasajero);
+            if (reservas.isEmpty()) {
+                System.out.println("No se encontraron reservas para ese pasajero.");
+            } else {
+                System.out.println("\n=== RESERVAS DEL PASAJERO " + dniPasajero + " ===");
+                imprimirTablaReservas(reservas);
+                System.out.println("Total encontradas: " + reservas.size());
+            }
+        });
     }
 
     private void buscarReservasPorVuelo() {
         System.out.print("\nIngrese el número de vuelo: ");
         String numeroVuelo = scanner.nextLine();
-        List<Reserva> reservas = reservaService.buscarReservasPorVuelo(numeroVuelo);
-        if (reservas.isEmpty()) {
-            System.out.println("No se encontraron reservas para ese vuelo.");
-        } else {
-            reservas.forEach(System.out::println);
-        }
+        ejecutarAccion(() -> {
+            List<Reserva> reservas = reservaService.buscarReservasPorVuelo(numeroVuelo);
+            if (reservas.isEmpty()) {
+                System.out.println("No se encontraron reservas para ese vuelo.");
+            } else {
+                System.out.println("\n=== RESERVAS DEL VUELO " + numeroVuelo + " ===");
+                imprimirTablaReservas(reservas);
+                System.out.println("Total encontradas: " + reservas.size());
+            }
+        });
     }
 
     private void cancelarReserva() {
         System.out.print("\nIngrese el número de reserva a cancelar: ");
         String numeroReserva = scanner.nextLine();
-        if (reservaService.cancelarReserva(numeroReserva)) {
+        ejecutarAccion(() -> {
+            reservaService.cancelarReserva(numeroReserva);
             System.out.println("Reserva cancelada exitosamente.");
-        } else {
-            System.out.println("Error al cancelar reserva.");
-        }
+        });
     }
 
     // Métodos auxiliares
@@ -970,8 +1189,7 @@ public class MenuService {
         while (true) {
             try {
                 String fechaHoraStr = scanner.nextLine();
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-                return LocalDateTime.parse(fechaHoraStr, formatter);
+                return LocalDateTime.parse(fechaHoraStr, DATE_TIME_FORMATTER);
             } catch (DateTimeParseException e) {
                 System.out.print("Fecha y hora inválidas. Use formato YYYY-MM-DD HH:MM. Intente nuevamente: ");
             }

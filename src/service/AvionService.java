@@ -1,8 +1,12 @@
 package service;
 
+import exception.OperacionNoPermitidaException;
+import exception.RecursoNoEncontradoException;
+import exception.ValidacionException;
 import model.Avion;
 import model.EstadoAvion;
 import repository.IAvionRepository;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -21,17 +25,17 @@ public class AvionService implements IAvionService {
     @Override
     public boolean registrarAvion(Avion avion) {
         if (avion == null) {
-            return false;
+            throw new ValidacionException("El avión no puede ser nulo.");
         }
-        
-        if (avion.getNumeroSerie() == null || avion.getNumeroSerie().isEmpty()) {
-            return false;
+
+        if (avion.getNumeroSerie() == null || avion.getNumeroSerie().isBlank()) {
+            throw new ValidacionException("El número de serie del avión es obligatorio.");
         }
-        
+
         if (avionRepository.existe(avion.getNumeroSerie())) {
-            return false; // Ya existe un avión con ese número de serie
+            throw new OperacionNoPermitidaException("Ya existe un avión con el número de serie " + avion.getNumeroSerie() + ".");
         }
-        
+
         avionRepository.guardar(avion);
         return true;
     }
@@ -55,6 +59,12 @@ public class AvionService implements IAvionService {
 
     @Override
     public boolean eliminarAvion(String numeroSerie) {
+        if (numeroSerie == null || numeroSerie.isBlank()) {
+            throw new ValidacionException("El número de serie es obligatorio para eliminar un avión.");
+        }
+        if (!avionRepository.existe(numeroSerie)) {
+            throw new RecursoNoEncontradoException("No se encontró un avión con número de serie " + numeroSerie + ".");
+        }
         return avionRepository.eliminar(numeroSerie);
     }
 }

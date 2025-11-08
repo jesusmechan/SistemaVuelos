@@ -1,8 +1,11 @@
 package service;
 
+import exception.OperacionNoPermitidaException;
+import exception.RecursoNoEncontradoException;
+import exception.ValidacionException;
 import model.Empleado;
 import repository.IEmpleadoRepository;
-import repository.EmpleadoRepository;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -21,17 +24,17 @@ public class EmpleadoService implements IEmpleadoService {
     @Override
     public boolean registrarEmpleado(Empleado empleado) {
         if (empleado == null) {
-            return false;
+            throw new ValidacionException("El empleado no puede ser nulo.");
         }
-        
-        if (empleado.getDni() == null || empleado.getDni().isEmpty()) {
-            return false;
+
+        if (empleado.getDni() == null || empleado.getDni().isBlank()) {
+            throw new ValidacionException("El DNI del empleado es obligatorio.");
         }
-        
+
         if (empleadoRepository.existe(empleado.getDni())) {
-            return false; // Ya existe un empleado con ese DNI
+            throw new OperacionNoPermitidaException("Ya existe un empleado con el DNI " + empleado.getDni() + ".");
         }
-        
+
         empleadoRepository.guardar(empleado);
         return true;
     }
@@ -53,11 +56,20 @@ public class EmpleadoService implements IEmpleadoService {
 
     @Override
     public List<Empleado> buscarEmpleadosPorCargo(String cargo) {
+        if (cargo == null || cargo.isBlank()) {
+            throw new ValidacionException("El cargo no puede estar vacío.");
+        }
         return empleadoRepository.buscarPorCargo(cargo);
     }
 
     @Override
     public boolean eliminarEmpleado(String dni) {
+        if (dni == null || dni.isBlank()) {
+            throw new ValidacionException("El DNI es obligatorio para eliminar un empleado.");
+        }
+        if (!empleadoRepository.existe(dni)) {
+            throw new RecursoNoEncontradoException("No se encontró un empleado con DNI " + dni + ".");
+        }
         return empleadoRepository.eliminar(dni);
     }
 }

@@ -1,7 +1,11 @@
 package service;
 
+import exception.OperacionNoPermitidaException;
+import exception.RecursoNoEncontradoException;
+import exception.ValidacionException;
 import model.Vuelo;
 import repository.IVueloRepository;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -19,21 +23,21 @@ public class VueloService implements IVueloService {
     @Override
     public boolean registrarVuelo(Vuelo vuelo) {
         if (vuelo == null) {
-            return false;
+            throw new ValidacionException("El vuelo no puede ser nulo.");
         }
-        
-        if (vuelo.getNumeroVuelo() == null || vuelo.getNumeroVuelo().isEmpty()) {
-            return false;
+
+        if (vuelo.getNumeroVuelo() == null || vuelo.getNumeroVuelo().isBlank()) {
+            throw new ValidacionException("El número de vuelo es obligatorio.");
         }
-        
+
         if (vuelo.getAvion() == null) {
-            return false; // Un vuelo debe tener un avión asignado
+            throw new ValidacionException("El vuelo debe tener un avión asignado.");
         }
-        
+
         if (vueloRepository.existe(vuelo.getNumeroVuelo())) {
-            return false; // Ya existe un vuelo con ese número
+            throw new OperacionNoPermitidaException("Ya existe un vuelo con el número " + vuelo.getNumeroVuelo() + ".");
         }
-        
+
         vueloRepository.guardar(vuelo);
         return true;
     }
@@ -65,6 +69,12 @@ public class VueloService implements IVueloService {
 
     @Override
     public boolean eliminarVuelo(String numeroVuelo) {
+        if (numeroVuelo == null || numeroVuelo.isBlank()) {
+            throw new ValidacionException("El número de vuelo es obligatorio para eliminar.");
+        }
+        if (!vueloRepository.existe(numeroVuelo)) {
+            throw new RecursoNoEncontradoException("No se encontró un vuelo con número " + numeroVuelo + ".");
+        }
         return vueloRepository.eliminar(numeroVuelo);
     }
 }
