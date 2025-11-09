@@ -850,8 +850,9 @@ public class MenuService {
                 System.out.println("4. Buscar Vuelos por Origen");
                 System.out.println("5. Buscar Vuelos por Destino");
                 System.out.println("6. Buscar Vuelos por Ruta");
-                System.out.println("7. Eliminar Vuelo");
-                System.out.println("8. Volver al Menú Principal");
+                System.out.println("7. Buscar Vuelos por Fecha");
+                System.out.println("8. Eliminar Vuelo");
+                System.out.println("9. Volver al Menú Principal");
             } else {
                 System.out.println("2. Volver al Menú Principal");
             }
@@ -880,9 +881,12 @@ public class MenuService {
                         buscarVuelosPorRuta();
                         break;
                     case 7:
-                        eliminarVuelo();
+                        buscarVuelosPorFecha();
                         break;
                     case 8:
+                        eliminarVuelo();
+                        break;
+                    case 9:
                         return;
                     default:
                         System.out.println("Opción inválida.");
@@ -1000,6 +1004,21 @@ public class MenuService {
         });
     }
 
+    private void buscarVuelosPorFecha() {
+        System.out.print("\nIngrese la fecha de salida (YYYY-MM-DD): ");
+        LocalDate fecha = leerFecha();
+        ejecutarAccion(() -> {
+            List<Vuelo> vuelos = vueloService.buscarVuelosPorFecha(fecha);
+            if (vuelos.isEmpty()) {
+                System.out.println("No se encontraron vuelos para la fecha indicada.");
+            } else {
+                System.out.println("\n=== VUELOS PARA " + fecha + " ===");
+                imprimirTablaVuelos(vuelos);
+                System.out.println("Total encontrados: " + vuelos.size());
+            }
+        });
+    }
+
     private void eliminarVuelo() {
         System.out.print("\nIngrese el número de vuelo a eliminar: ");
         String numeroVuelo = scanner.nextLine();
@@ -1022,8 +1041,9 @@ public class MenuService {
                 System.out.println("3. Listar Todas las Reservas");
                 System.out.println("4. Buscar Reservas por Pasajero");
                 System.out.println("5. Buscar Reservas por Vuelo");
-                System.out.println("6. Cancelar Reserva");
-                System.out.println("7. Volver al Menú Principal");
+                System.out.println("6. Buscar Reservas por Fecha");
+                System.out.println("7. Cancelar Reserva");
+                System.out.println("8. Volver al Menú Principal");
             } else {
                 System.out.println("2. Volver al Menú Principal");
             }
@@ -1049,9 +1069,12 @@ public class MenuService {
                         buscarReservasPorVuelo();
                         break;
                     case 6:
-                        cancelarReserva();
+                        buscarReservasPorFecha();
                         break;
                     case 7:
+                        cancelarReserva();
+                        break;
+                    case 8:
                         return;
                     default:
                         System.out.println("Opción inválida.");
@@ -1148,6 +1171,21 @@ public class MenuService {
         });
     }
 
+    private void buscarReservasPorFecha() {
+        System.out.print("\nIngrese la fecha de la reserva (YYYY-MM-DD): ");
+        LocalDate fecha = leerFecha();
+        ejecutarAccion(() -> {
+            List<Reserva> reservas = reservaService.buscarReservasPorFecha(fecha);
+            if (reservas.isEmpty()) {
+                System.out.println("No se encontraron reservas para la fecha indicada.");
+            } else {
+                System.out.println("\n=== RESERVAS PARA " + fecha + " ===");
+                imprimirTablaReservas(reservas);
+                System.out.println("Total encontradas: " + reservas.size());
+            }
+        });
+    }
+
     private void cancelarReserva() {
         System.out.print("\nIngrese el número de reserva a cancelar: ");
         String numeroReserva = scanner.nextLine();
@@ -1213,8 +1251,43 @@ public class MenuService {
         Usuario usuarioAdmin = new Usuario("jesus.mechan", "1234", Rol.ADMINISTRADOR, empleadoAdmin);
         usuarioService.registrarUsuario(usuarioAdmin);
 
-        Usuario usuarioAdmin2 = new Usuario("juana.rivera", "1234", Rol.OPERADOR, empleadoAdmin2);
+        Usuario usuarioAdmin2 = new Usuario("juana.rivera", "1234", Rol.ADMINISTRADOR, empleadoAdmin2);
         usuarioService.registrarUsuario(usuarioAdmin2);
+
+        //Agregar a Piero
+        Empleado empleadoAdmin3 = new Empleado( "98525761", "Piero", "Franco", "piero.franco@sistema.com",
+                "999999999", "EMP003", "Administrador", LocalDate.now(), 5000.0
+        );
+        empleadoService.registrarEmpleado(empleadoAdmin3);
+
+        Usuario usuarioAdmin3 = new Usuario("piero.franco", "1234", Rol.ADMINISTRADOR, empleadoAdmin3);
+        usuarioService.registrarUsuario(usuarioAdmin3);
+
+        //Iniciar información de pasajero
+
+        Pasajero pasajero1 = new Pasajero("65432198", "David", "Sanchez", "david.sanchez@gmail.com", "987516300", LocalDate.parse("1997-01-01"), "Peruana", "PAS-65432198");
+        pasajeroService.registrarPasajero(pasajero1);
+
+        Pasajero pasajero2 = new Pasajero("33445561", "Lorena", "Marina", "lorena.marina@gmail.com", "987516200", LocalDate.parse("1999-01-01"), "Peruana", "PAS-33445561");
+        pasajeroService.registrarPasajero(pasajero2);
+
+
+        //Iniciar información de aviones
+        Avion avion1 = new Avion("AVI-00001", "Aviones de pasajeros", "Airbus", 20,12500);
+        avionService.registrarAvion(avion1);
+
+        Avion avion2 = new Avion("AVI-00002", "Aviones de pasajeros", "Airbus", 21,11500);
+        avionService.registrarAvion(avion2);
+
+        Avion avion3 = new Avion("AVI-00003", "Aviones de pasajeros", "Airbus", 25,12000);
+        avionService.registrarAvion(avion3);
+
+        Avion avion4 = new Avion("AVI-00004", "Aviones de pasajeros", "Airbus", 18,12100);
+        avionService.registrarAvion(avion4);
+
+        Avion avion5 = new Avion("AVI-00005", "Aviones de pasajeros", "Airbus", 31,13500);
+        avionService.registrarAvion(avion5);
+
 
     }
 }

@@ -1,6 +1,8 @@
 package service;
 
 import model.Vuelo;
+
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,6 +16,7 @@ public interface IVueloService {
     List<Vuelo> buscarVuelosPorOrigen(String origen);
     List<Vuelo> buscarVuelosPorDestino(String destino);
     List<Vuelo> buscarVuelosPorRuta(String origen, String destino);
+    List<Vuelo> buscarVuelosPorFecha(LocalDate fecha);
     boolean eliminarVuelo(String numeroVuelo);
 }
 

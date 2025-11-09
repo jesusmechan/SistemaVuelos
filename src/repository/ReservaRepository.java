@@ -1,6 +1,8 @@
 package repository;
 
 import model.Reserva;
+
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -38,6 +40,17 @@ public class ReservaRepository implements IReservaRepository {
         return reservas.values().stream()
                 .filter(r -> r.getVuelo() != null 
                           && r.getVuelo().getNumeroVuelo().equals(numeroVuelo))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Reserva> buscarPorFecha(LocalDate fecha) {
+        if (fecha == null) {
+            return Collections.emptyList();
+        }
+        return reservas.values().stream()
+                .filter(r -> r.getFechaReserva() != null
+                          && r.getFechaReserva().toLocalDate().equals(fecha))
                 .collect(Collectors.toList());
     }
 

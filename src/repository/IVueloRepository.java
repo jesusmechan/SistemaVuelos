@@ -1,6 +1,8 @@
 package repository;
 
 import model.Vuelo;
+
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,6 +17,7 @@ public interface IVueloRepository {
     List<Vuelo> buscarPorOrigen(String origen);
     List<Vuelo> buscarPorDestino(String destino);
     List<Vuelo> buscarPorOrigenYDestino(String origen, String destino);
+    List<Vuelo> buscarPorFecha(LocalDate fecha);
     boolean eliminar(String numeroVuelo);
     boolean existe(String numeroVuelo);
 }

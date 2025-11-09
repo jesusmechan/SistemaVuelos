@@ -6,6 +6,7 @@ import exception.ValidacionException;
 import model.Vuelo;
 import repository.IVueloRepository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -65,6 +66,14 @@ public class VueloService implements IVueloService {
     @Override
     public List<Vuelo> buscarVuelosPorRuta(String origen, String destino) {
         return vueloRepository.buscarPorOrigenYDestino(origen, destino);
+    }
+
+    @Override
+    public List<Vuelo> buscarVuelosPorFecha(LocalDate fecha) {
+        if (fecha == null) {
+            throw new ValidacionException("La fecha es obligatoria para la búsqueda.");
+        }
+        return vueloRepository.buscarPorFecha(fecha);
     }
 
     @Override

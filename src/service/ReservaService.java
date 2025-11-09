@@ -8,6 +8,7 @@ import model.Reserva;
 import model.Vuelo;
 import repository.IReservaRepository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -71,6 +72,14 @@ public class ReservaService implements IReservaService {
     @Override
     public List<Reserva> buscarReservasPorVuelo(String numeroVuelo) {
         return reservaRepository.buscarPorVuelo(numeroVuelo);
+    }
+
+    @Override
+    public List<Reserva> buscarReservasPorFecha(LocalDate fecha) {
+        if (fecha == null) {
+            throw new ValidacionException("La fecha es obligatoria para la búsqueda.");
+        }
+        return reservaRepository.buscarPorFecha(fecha);
     }
 
     @Override

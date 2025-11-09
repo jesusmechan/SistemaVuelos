@@ -1,6 +1,8 @@
 package repository;
 
 import model.Vuelo;
+
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -44,6 +46,17 @@ public class VueloRepository implements IVueloRepository {
         return vuelos.values().stream()
                 .filter(v -> v.getOrigen().equalsIgnoreCase(origen) 
                           && v.getDestino().equalsIgnoreCase(destino))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Vuelo> buscarPorFecha(LocalDate fecha) {
+        if (fecha == null) {
+            return Collections.emptyList();
+        }
+        return vuelos.values().stream()
+                .filter(v -> v.getFechaHoraSalida() != null 
+                          && v.getFechaHoraSalida().toLocalDate().equals(fecha))
                 .collect(Collectors.toList());
     }
 

@@ -1,6 +1,8 @@
 package repository;
 
 import model.Reserva;
+
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,6 +16,7 @@ public interface IReservaRepository {
     List<Reserva> listarTodos();
     List<Reserva> buscarPorPasajero(String dniPasajero);
     List<Reserva> buscarPorVuelo(String numeroVuelo);
+    List<Reserva> buscarPorFecha(LocalDate fecha);
     boolean eliminar(String numeroReserva);
     boolean existe(String numeroReserva);
 }
