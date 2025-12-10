@@ -47,9 +47,7 @@ public class ReservaService implements IReservaService {
             throw new OperacionNoPermitidaException("El vuelo " + vuelo.getNumeroVuelo() + " no tiene asientos disponibles.");
         }
 
-        // Reservar el asiento en el vuelo
-        vuelo.reservarAsiento();
-
+        // El procedimiento almacenado se encarga de reservar el asiento automáticamente
         reservaRepository.guardar(reserva);
         return true;
     }
@@ -94,16 +92,8 @@ public class ReservaService implements IReservaService {
             throw new RecursoNoEncontradoException("No se encontró la reserva " + numeroReserva + ".");
         }
 
-        Reserva reserva = reservaOpt.get();
-        reserva.setEstado(EstadoReserva.CANCELADA);
-
-        // Liberar el asiento en el vuelo
-        if (reserva.getVuelo() != null) {
-            reserva.getVuelo().liberarAsiento();
-        }
-
-        reservaRepository.guardar(reserva);
-        return true;
+        // El procedimiento almacenado se encarga de cancelar la reserva y liberar el asiento automáticamente
+        return reservaRepository.eliminar(numeroReserva);
     }
 }
 

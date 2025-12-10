@@ -47,7 +47,7 @@ public class MenuService {
         this.reservaService = new ReservaService(reservaRepo);
         
         // Crear datos iniciales
-        inicializarDatos();
+        //inicializarDatos();
     }
 
     public void mostrarMenuPrincipal() {
@@ -77,7 +77,7 @@ public class MenuService {
         System.out.print("Usuario: ");
         String nombreUsuario = scanner.nextLine();
         System.out.print("Contraseña: ");
-        String contrasena = scanner.nextLine();
+        String contrasena = leerContrasena();
 
         usuarioActual = null;
         
@@ -1196,6 +1196,63 @@ public class MenuService {
     }
 
     // Métodos auxiliares
+    private String leerContrasena() {
+        // Intentar usar System.console() primero (más seguro y funciona mejor)
+        // Esto funciona perfectamente cuando se ejecuta desde la línea de comandos
+        java.io.Console console = System.console();
+        if (console != null) {
+            char[] passwordArray = console.readPassword();
+            return new String(passwordArray);
+        }
+        
+        // Si System.console() no está disponible (como en algunos IDEs),
+        // usar una implementación que lee carácter por carácter
+        StringBuilder contrasena = new StringBuilder();
+        
+        try {
+            // Configurar para leer caracteres individuales sin buffering
+            java.io.InputStreamReader reader = new java.io.InputStreamReader(System.in);
+            
+            int caracter;
+            while (true) {
+                caracter = reader.read();
+                
+                // Enter (10) o Carriage Return (13): terminar lectura
+                if (caracter == 10 || caracter == 13) {
+                    System.out.println(); // Nueva línea después de Enter
+                    break;
+                }
+                
+                // Backspace (8) o Delete (127)
+                if (caracter == 8 || caracter == 127) {
+                    if (contrasena.length() > 0) {
+                        contrasena.setLength(contrasena.length() - 1);
+                        System.out.print("\b \b");
+                        System.out.flush();
+                    }
+                }
+                // Carácter imprimible (32-126)
+                else if (caracter >= 32 && caracter <= 126) {
+                    contrasena.append((char) caracter);
+                    System.out.print('*');
+                    System.out.flush();
+                }
+            }
+        } catch (Exception e) {
+            // Si hay error (puede pasar en algunos IDEs con buffering),
+            // leer normalmente como fallback
+            String pass = scanner.nextLine();
+            // Mostrar asteriscos después de leer (aunque sea tarde)
+            for (int i = 0; i < pass.length(); i++) {
+                System.out.print("\b*");
+            }
+            System.out.println();
+            return pass;
+        }
+        
+        return contrasena.toString();
+    }
+    
     private int leerEntero() {
         try {
             return Integer.parseInt(scanner.nextLine());
@@ -1291,4 +1348,5 @@ public class MenuService {
 
     }
 }
+
 

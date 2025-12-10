@@ -17,6 +17,7 @@ public class Vuelo {
     private int asientosDisponibles;
     private EstadoVuelo estado;
 
+    public Vuelo(){}
     public Vuelo(String numeroVuelo, String origen, String destino, 
                 LocalDateTime fechaHoraSalida, LocalDateTime fechaHoraLlegada,
                 Avion avion, double precio) {
