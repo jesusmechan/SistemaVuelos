@@ -4,6 +4,7 @@ import database.ConexionBD;
 import model.Vuelo;
 import model.Avion;
 import model.EstadoVuelo;
+import model.EstadoAvion;
 import repository.AvionRepository;
 
 import java.sql.*;
@@ -66,16 +67,16 @@ public class VueloRepository implements IVueloRepository {
 
     @Override
     public Optional<Vuelo> buscarPorNumeroVuelo(String numeroVuelo) {
-        String sql = "SELECT * FROM vuelos WHERE numero_vuelo = ?";
+        String sql = "{CALL sp_buscar_vuelo_por_numero(?)}";
         
         try (Connection conn = conexionBD.getConexion();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             CallableStatement cstmt = conn.prepareCall(sql)) {
             
-            pstmt.setString(1, numeroVuelo);
+            cstmt.setString(1, numeroVuelo);
             
-            try (ResultSet rs = pstmt.executeQuery()) {
+            try (ResultSet rs = cstmt.executeQuery()) {
                 if (rs.next()) {
-                    return Optional.of(mapResultSetToVuelo(rs));
+                    return Optional.of(mapResultSetToVueloCompleto(rs));
                 }
             }
         } catch (SQLException e) {
@@ -87,15 +88,15 @@ public class VueloRepository implements IVueloRepository {
 
     @Override
     public List<Vuelo> listarTodos() {
-        String sql = "SELECT * FROM vuelos ORDER BY fecha_hora_salida";
+        String sql = "{CALL sp_listar_vuelos}";
         List<Vuelo> vuelos = new ArrayList<>();
         
         try (Connection conn = conexionBD.getConexion();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+             CallableStatement cstmt = conn.prepareCall(sql);
+             ResultSet rs = cstmt.executeQuery()) {
             
             while (rs.next()) {
-                vuelos.add(mapResultSetToVuelo(rs));
+                vuelos.add(mapResultSetToVueloCompleto(rs));
             }
         } catch (SQLException e) {
             throw new RuntimeException("Error al listar vuelos: " + e.getMessage(), e);
@@ -106,17 +107,17 @@ public class VueloRepository implements IVueloRepository {
 
     @Override
     public List<Vuelo> buscarPorOrigen(String origen) {
-        String sql = "SELECT * FROM vuelos WHERE origen = ? ORDER BY fecha_hora_salida";
+        String sql = "{CALL sp_buscar_vuelos_por_origen(?)}";
         List<Vuelo> vuelos = new ArrayList<>();
         
         try (Connection conn = conexionBD.getConexion();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             CallableStatement cstmt = conn.prepareCall(sql)) {
             
-            pstmt.setString(1, origen);
+            cstmt.setString(1, origen);
             
-            try (ResultSet rs = pstmt.executeQuery()) {
+            try (ResultSet rs = cstmt.executeQuery()) {
                 while (rs.next()) {
-                    vuelos.add(mapResultSetToVuelo(rs));
+                    vuelos.add(mapResultSetToVueloCompleto(rs));
                 }
             }
         } catch (SQLException e) {
@@ -128,17 +129,17 @@ public class VueloRepository implements IVueloRepository {
 
     @Override
     public List<Vuelo> buscarPorDestino(String destino) {
-        String sql = "SELECT * FROM vuelos WHERE destino = ? ORDER BY fecha_hora_salida";
+        String sql = "{CALL sp_buscar_vuelos_por_destino(?)}";
         List<Vuelo> vuelos = new ArrayList<>();
         
         try (Connection conn = conexionBD.getConexion();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             CallableStatement cstmt = conn.prepareCall(sql)) {
             
-            pstmt.setString(1, destino);
+            cstmt.setString(1, destino);
             
-            try (ResultSet rs = pstmt.executeQuery()) {
+            try (ResultSet rs = cstmt.executeQuery()) {
                 while (rs.next()) {
-                    vuelos.add(mapResultSetToVuelo(rs));
+                    vuelos.add(mapResultSetToVueloCompleto(rs));
                 }
             }
         } catch (SQLException e) {
@@ -150,18 +151,18 @@ public class VueloRepository implements IVueloRepository {
 
     @Override
     public List<Vuelo> buscarPorOrigenYDestino(String origen, String destino) {
-        String sql = "SELECT * FROM vuelos WHERE origen = ? AND destino = ? ORDER BY fecha_hora_salida";
+        String sql = "{CALL sp_buscar_vuelos_por_ruta(?, ?)}";
         List<Vuelo> vuelos = new ArrayList<>();
         
         try (Connection conn = conexionBD.getConexion();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             CallableStatement cstmt = conn.prepareCall(sql)) {
             
-            pstmt.setString(1, origen);
-            pstmt.setString(2, destino);
+            cstmt.setString(1, origen);
+            cstmt.setString(2, destino);
             
-            try (ResultSet rs = pstmt.executeQuery()) {
+            try (ResultSet rs = cstmt.executeQuery()) {
                 while (rs.next()) {
-                    vuelos.add(mapResultSetToVuelo(rs));
+                    vuelos.add(mapResultSetToVueloCompleto(rs));
                 }
             }
         } catch (SQLException e) {
@@ -177,17 +178,17 @@ public class VueloRepository implements IVueloRepository {
             return new ArrayList<>();
         }
         
-        String sql = "SELECT * FROM vuelos WHERE CAST(fecha_hora_salida AS DATE) = ? ORDER BY fecha_hora_salida";
+        String sql = "{CALL sp_buscar_vuelos_por_fecha(?)}";
         List<Vuelo> vuelos = new ArrayList<>();
         
         try (Connection conn = conexionBD.getConexion();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             CallableStatement cstmt = conn.prepareCall(sql)) {
             
-            pstmt.setDate(1, Date.valueOf(fecha));
+            cstmt.setDate(1, Date.valueOf(fecha));
             
-            try (ResultSet rs = pstmt.executeQuery()) {
+            try (ResultSet rs = cstmt.executeQuery()) {
                 while (rs.next()) {
-                    vuelos.add(mapResultSetToVuelo(rs));
+                    vuelos.add(mapResultSetToVueloCompleto(rs));
                 }
             }
         } catch (SQLException e) {
@@ -281,12 +282,7 @@ public class VueloRepository implements IVueloRepository {
             
             try (ResultSet rs = cstmt.executeQuery()) {
                 while (rs.next()) {
-                    // Obtener el vuelo completo usando el número de vuelo
-                    String numeroVuelo = rs.getString("numero_vuelo");
-                    Optional<Vuelo> vueloOpt = buscarPorNumeroVuelo(numeroVuelo);
-                    if (vueloOpt.isPresent()) {
-                        vuelos.add(vueloOpt.get());
-                    }
+                    vuelos.add(mapResultSetToVueloCompleto(rs));
                 }
             }
         } catch (SQLException e) {
@@ -297,7 +293,61 @@ public class VueloRepository implements IVueloRepository {
     }
 
     /**
-     * Mapea un ResultSet a un objeto Vuelo
+     * Mapea un ResultSet completo (con JOINs) a un objeto Vuelo sin hacer consultas adicionales
+     */
+    private Vuelo mapResultSetToVueloCompleto(ResultSet rs) throws SQLException {
+        // Datos del vuelo
+        Timestamp fechaSalida = rs.getTimestamp("fecha_hora_salida");
+        Timestamp fechaLlegada = rs.getTimestamp("fecha_hora_llegada");
+        LocalDateTime fechaHoraSalida = fechaSalida != null ? fechaSalida.toLocalDateTime() : null;
+        LocalDateTime fechaHoraLlegada = fechaLlegada != null ? fechaLlegada.toLocalDateTime() : null;
+        
+        String numero_vuelo = rs.getString("numero_vuelo");
+        String origen = rs.getString("origen");
+        String destino = rs.getString("destino");
+        Double precio = rs.getDouble("precio");
+        int asientos_disponibles = rs.getInt("asientos_disponibles");
+        String estado_vuelo = rs.getString("estado_vuelo");
+        
+        // Crear Avión desde los datos del JOIN
+        String numeroSerie = rs.getString("numero_serie");
+        String modelo = rs.getString("modelo");
+        String fabricante = rs.getString("fabricante");
+        int capacidadPasajeros = rs.getInt("capacidad_pasajeros");
+        int capacidadCarga = rs.getInt("capacidad_carga");
+        String estadoAvionStr = rs.getString("estado_avion");
+        
+        Avion avion = new Avion(numeroSerie, modelo, fabricante, capacidadPasajeros, capacidadCarga);
+        try {
+            avion.setEstado(EstadoAvion.valueOf(estadoAvionStr));
+        } catch (IllegalArgumentException e) {
+            avion.setEstado(EstadoAvion.DISPONIBLE);
+        }
+        
+        // Crear Vuelo
+        Vuelo vuelo = new Vuelo(
+            numero_vuelo,
+            origen,
+            destino,
+            fechaHoraSalida,
+            fechaHoraLlegada,
+            avion,
+            precio
+        );
+        vuelo.setAsientosDisponibles(asientos_disponibles);
+        
+        // Establecer estado
+        try {
+            vuelo.setEstado(EstadoVuelo.valueOf(estado_vuelo));
+        } catch (IllegalArgumentException e) {
+            vuelo.setEstado(EstadoVuelo.PROGRAMADO);
+        }
+        
+        return vuelo;
+    }
+
+    /**
+     * Mapea un ResultSet a un objeto Vuelo (método original que hace consultas adicionales)
      */
     private Vuelo mapResultSetToVuelo(ResultSet rs) throws SQLException {
         Timestamp fechaSalida = rs.getTimestamp("fecha_hora_salida");

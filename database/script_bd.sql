@@ -462,10 +462,13 @@ BEGIN
         v.fecha_hora_llegada,
         v.precio,
         v.asientos_disponibles,
-        v.estado,
+        v.estado AS estado_vuelo,
+        a.numero_serie,
         a.modelo,
         a.fabricante,
-        a.capacidad_pasajeros
+        a.capacidad_pasajeros,
+        a.capacidad_carga,
+        a.estado AS estado_avion
     FROM vuelos v
     INNER JOIN aviones a ON v.numero_serie_avion = a.numero_serie
     WHERE (@p_origen IS NULL OR v.origen = @p_origen)
@@ -835,6 +838,202 @@ BEGIN
     INNER JOIN aviones a ON v.numero_serie_avion = a.numero_serie 
     WHERE CAST(r.fecha_reserva AS DATE) = @p_fecha 
     ORDER BY r.fecha_reserva DESC;
+END;
+GO
+
+-- Procedimiento: Listar todos los vuelos con información completa
+IF OBJECT_ID('sp_listar_vuelos', 'P') IS NOT NULL
+    DROP PROCEDURE sp_listar_vuelos;
+GO
+
+CREATE PROCEDURE sp_listar_vuelos
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        v.numero_vuelo, 
+        v.origen, 
+        v.destino, 
+        v.fecha_hora_salida, 
+        v.fecha_hora_llegada, 
+        v.precio, 
+        v.asientos_disponibles, 
+        v.estado AS estado_vuelo, 
+        a.numero_serie, 
+        a.modelo, 
+        a.fabricante, 
+        a.capacidad_pasajeros, 
+        a.capacidad_carga, 
+        a.estado AS estado_avion 
+    FROM vuelos v 
+    INNER JOIN aviones a ON v.numero_serie_avion = a.numero_serie 
+    ORDER BY v.fecha_hora_salida;
+END;
+GO
+
+-- Procedimiento: Buscar vuelo por número con información completa
+IF OBJECT_ID('sp_buscar_vuelo_por_numero', 'P') IS NOT NULL
+    DROP PROCEDURE sp_buscar_vuelo_por_numero;
+GO
+
+CREATE PROCEDURE sp_buscar_vuelo_por_numero
+    @p_numero_vuelo VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        v.numero_vuelo, 
+        v.origen, 
+        v.destino, 
+        v.fecha_hora_salida, 
+        v.fecha_hora_llegada, 
+        v.precio, 
+        v.asientos_disponibles, 
+        v.estado AS estado_vuelo, 
+        a.numero_serie, 
+        a.modelo, 
+        a.fabricante, 
+        a.capacidad_pasajeros, 
+        a.capacidad_carga, 
+        a.estado AS estado_avion 
+    FROM vuelos v 
+    INNER JOIN aviones a ON v.numero_serie_avion = a.numero_serie 
+    WHERE v.numero_vuelo = @p_numero_vuelo;
+END;
+GO
+
+-- Procedimiento: Buscar vuelos por origen con información completa
+IF OBJECT_ID('sp_buscar_vuelos_por_origen', 'P') IS NOT NULL
+    DROP PROCEDURE sp_buscar_vuelos_por_origen;
+GO
+
+CREATE PROCEDURE sp_buscar_vuelos_por_origen
+    @p_origen VARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        v.numero_vuelo, 
+        v.origen, 
+        v.destino, 
+        v.fecha_hora_salida, 
+        v.fecha_hora_llegada, 
+        v.precio, 
+        v.asientos_disponibles, 
+        v.estado AS estado_vuelo, 
+        a.numero_serie, 
+        a.modelo, 
+        a.fabricante, 
+        a.capacidad_pasajeros, 
+        a.capacidad_carga, 
+        a.estado AS estado_avion 
+    FROM vuelos v 
+    INNER JOIN aviones a ON v.numero_serie_avion = a.numero_serie 
+    WHERE v.origen = @p_origen 
+    ORDER BY v.fecha_hora_salida;
+END;
+GO
+
+-- Procedimiento: Buscar vuelos por destino con información completa
+IF OBJECT_ID('sp_buscar_vuelos_por_destino', 'P') IS NOT NULL
+    DROP PROCEDURE sp_buscar_vuelos_por_destino;
+GO
+
+CREATE PROCEDURE sp_buscar_vuelos_por_destino
+    @p_destino VARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        v.numero_vuelo, 
+        v.origen, 
+        v.destino, 
+        v.fecha_hora_salida, 
+        v.fecha_hora_llegada, 
+        v.precio, 
+        v.asientos_disponibles, 
+        v.estado AS estado_vuelo, 
+        a.numero_serie, 
+        a.modelo, 
+        a.fabricante, 
+        a.capacidad_pasajeros, 
+        a.capacidad_carga, 
+        a.estado AS estado_avion 
+    FROM vuelos v 
+    INNER JOIN aviones a ON v.numero_serie_avion = a.numero_serie 
+    WHERE v.destino = @p_destino 
+    ORDER BY v.fecha_hora_salida;
+END;
+GO
+
+-- Procedimiento: Buscar vuelos por origen y destino con información completa
+IF OBJECT_ID('sp_buscar_vuelos_por_ruta', 'P') IS NOT NULL
+    DROP PROCEDURE sp_buscar_vuelos_por_ruta;
+GO
+
+CREATE PROCEDURE sp_buscar_vuelos_por_ruta
+    @p_origen VARCHAR(100),
+    @p_destino VARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        v.numero_vuelo, 
+        v.origen, 
+        v.destino, 
+        v.fecha_hora_salida, 
+        v.fecha_hora_llegada, 
+        v.precio, 
+        v.asientos_disponibles, 
+        v.estado AS estado_vuelo, 
+        a.numero_serie, 
+        a.modelo, 
+        a.fabricante, 
+        a.capacidad_pasajeros, 
+        a.capacidad_carga, 
+        a.estado AS estado_avion 
+    FROM vuelos v 
+    INNER JOIN aviones a ON v.numero_serie_avion = a.numero_serie 
+    WHERE v.origen = @p_origen AND v.destino = @p_destino 
+    ORDER BY v.fecha_hora_salida;
+END;
+GO
+
+-- Procedimiento: Buscar vuelos por fecha con información completa
+IF OBJECT_ID('sp_buscar_vuelos_por_fecha', 'P') IS NOT NULL
+    DROP PROCEDURE sp_buscar_vuelos_por_fecha;
+GO
+
+CREATE PROCEDURE sp_buscar_vuelos_por_fecha
+    @p_fecha DATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        v.numero_vuelo, 
+        v.origen, 
+        v.destino, 
+        v.fecha_hora_salida, 
+        v.fecha_hora_llegada, 
+        v.precio, 
+        v.asientos_disponibles, 
+        v.estado AS estado_vuelo, 
+        a.numero_serie, 
+        a.modelo, 
+        a.fabricante, 
+        a.capacidad_pasajeros, 
+        a.capacidad_carga, 
+        a.estado AS estado_avion 
+    FROM vuelos v 
+    INNER JOIN aviones a ON v.numero_serie_avion = a.numero_serie 
+    WHERE CAST(v.fecha_hora_salida AS DATE) = @p_fecha 
+    ORDER BY v.fecha_hora_salida;
 END;
 GO
 
